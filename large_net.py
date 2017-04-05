@@ -31,6 +31,7 @@ import tensorflow as tf
 
 FLAGS = None
 
+LR = 0.15
 
 def main():
   # Import data
@@ -61,29 +62,17 @@ def main():
 
   # Define loss and optimizer
 
-  # The raw formulation of cross-entropy,
-  #
-  #   tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(tf.nn.softmax(y)),
-  #                                 reduction_indices=[1]))
-  #
-  # can be numerically unstable.
-  #
-  # So here we use tf.nn.softmax_cross_entropy_with_logits on the raw
-  # outputs of 'y', and then average across the batch.
   cross_entropy = tf.reduce_mean(
       tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y))
-  train_step = tf.train.GradientDescentOptimizer(0.15).minimize(cross_entropy)
+  train_step = tf.train.GradientDescentOptimizer(LR).minimize(cross_entropy)
 
-  # sess = tf.InteractiveSession()
-  # init_op = tf.global_variables_initializer()
+  init_op = tf.global_variables_initializer()
 
-  # saver = tf.train.Saver({'L_w1': W1, 'L_w2': W2, 'L_w3': W3, 'L_b1': b1, 'L_b2': b2, 'L_b3': b3})
-  saver = tf.train.Saver()
+  saver = tf.train.Saver({'L_w1': W1, 'L_w2': W2, 'L_w3': W3, 'L_b1': b1, 'L_b2': b2, 'L_b3': b3})
 
   # Train
   with tf.Session() as sess:
-    # sess.run(init_op)
-    saver.restore(sess, "/Users/wenxichen/Desktop/DL_SLV/paper_presentation/my_mnist_distill/checkpoints/large_net.ckpt")
+    sess.run(init_op)
     for i in range(1,1001):
       batch_xs, batch_ys = mnist.train.next_batch(500)
       sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys, keep_prob: 0.5})
@@ -99,19 +88,9 @@ def main():
 
         print('(iter {}) train acc: {:.4f}, val acc: {:.4f}'.format(i, train_acc, val_acc))
 
-    # # Test trained model
-    # correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-    # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    # print(sess.run(accuracy, feed_dict={x: mnist.test.images,
-    #                                     y_: mnist.test.labels}))
-
-    save_path = saver.save(sess, "/Users/wenxichen/Desktop/DL_SLV/paper_presentation/my_mnist_distill/checkpoints/large_net.ckpt")
+    save_path = saver.save(sess, "path_to_save_ckpt")
     print("Model saved in file: %s" % save_path)
 
 if __name__ == '__main__':
-  # parser = argparse.ArgumentParser()
-  # parser.add_argument('--data_dir', type=str, default='/tmp/tensorflow/mnist/input_data',
-  #                     help='Directory for storing input data')
-  # FLAGS, unparsed = parser.parse_known_args()
-  # tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+
   main()

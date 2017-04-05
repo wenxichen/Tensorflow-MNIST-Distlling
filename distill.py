@@ -38,7 +38,6 @@ def main():
   # Create the model for large net
   # initialize parameters
   x = tf.placeholder(tf.float32, [None, 784])
-  # y_ = tf.placeholder(tf.float32, [None, 10])
   keep_prob = tf.placeholder(tf.float32)
   L_W1 = tf.Variable(tf.truncated_normal([784, 1200], stddev=0.1), name='L_w1')
   L_W2 = tf.Variable(tf.truncated_normal([1200, 1200], stddev=0.1), name='L_w2')
@@ -60,25 +59,19 @@ def main():
   # output layer
   L_y = tf.matmul(L_a2, L_W3) + L_b3
 
-  # TODO: check may only use batch size 1
   L_q = tf.nn.softmax(L_y * (1.0/T))
-  # L_q = tf.exp(L_y/T) / tf.reduce_sum(exp(L_y/T), -1)
 
   # Define loss and optimizer
 
   # Create the model for small net
   # initialize parameters
-  # x = tf.placeholder(tf.float32, [None, 784])
   y_ = tf.placeholder(tf.float32, [None, 10])
-  # keep_prob = tf.placeholder(tf.float32)
   W1 = tf.Variable(tf.truncated_normal([784, 20], stddev=0.1), name='dis_w1')
   W2 = tf.Variable(tf.truncated_normal([20, 20], stddev=0.1), name='dis_w2')
   W3 = tf.Variable(tf.truncated_normal([20, 10], stddev=0.1), name='dis_w3')
   b1 = tf.Variable([0.1]*20, name='dis_b1')
   b2 = tf.Variable([0.1]*20, name='dis_b2')
   b3 = tf.Variable([0.1]*10, name='dis_b3')
-  # temperature
-  # T = tf.constant(20.0)
 
   # first hidden layer
   a1 = tf.nn.relu(tf.matmul(x, W1) + b1)
@@ -92,58 +85,38 @@ def main():
   y = tf.matmul(a2, W3) + b3
 
   q = tf.nn.softmax(y * (1.0/T))
-  # q = tf.exp(y/T) / tf.reduce_sum(exp(y/T), -1)
 
   loss = tf.reduce_mean( - tf.reduce_sum(tf.log(q) * tf.stop_gradient(L_q), -1), -1)
 
   train_step = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
 
-  # sess = tf.InteractiveSession()
-  init_op = tf.variables_initializer([W1, W2, W3, b1, b2, b3])
+  # init_op = tf.variables_initializer([W1, W2, W3, b1, b2, b3])
 
   saver = tf.train.Saver({'L_w1': L_W1, 'L_w2': L_W2, 'L_w3': L_W3, 'L_b1': L_b1, 'L_b2': L_b2, 'L_b3': L_b3})
   saver2 = tf.train.Saver({'dis_w1': W1, 'dis_w2': W2, 'dis_w3': W3, 'dis_b1': b1, 'dis_b2': b2, 'dis_b3': b3})
 
   with tf.Session() as sess:
-  	sess.run(init_op)
-	saver.restore(sess, "/Users/wenxichen/Desktop/DL_SLV/paper_presentation/my_mnist_distill/checkpoints/large_net.ckpt")
-	# saver2.restore(sess, "/Users/wenxichen/Desktop/DL_SLV/paper_presentation/my_mnist_distill/checkpoints_distill/distill_net.ckpt")
-	saver2.restore(sess, "/Users/wenxichen/Desktop/DL_SLV/paper_presentation/my_mnist_distill/checkpoints_small/small_net.ckpt")
-	print("Model restored.")
+  	# sess.run(init_op)
+    saver.restore(sess, "path_to_load_large_net")
+    saver2.restore(sess, "path_to_load_small_net")
+    print("Model restored.")
 
-	# Train
-	for i in range(1,10001):
-		batch_xs, batch_ys = mnist.train.next_batch(500)
-		_, train_loss = sess.run([train_step, loss], feed_dict={x: batch_xs, y_: batch_ys, keep_prob: 1.0})
+    # Train
+    for i in range(1,10001):
+      batch_xs, batch_ys = mnist.train.next_batch(500)
+      _, train_loss = sess.run([train_step, loss], feed_dict={x: batch_xs, y_: batch_ys, keep_prob: 1.0})
 
-		if i % 10 == 0:
-			print("train loss:", train_loss)
-		#   correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-		#   accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-		#   train_acc = sess.run(accuracy, feed_dict={x: batch_xs,
-		#                                             y_: batch_ys,
-		#                                             keep_prob: 1.0})
-		#   val_acc = sess.run(accuracy, feed_dict={x: mnist.test.images,
-		#                                           y_: mnist.test.labels,
-		#                                           keep_prob: 1.0})
+      if i % 10 == 0:
+        print("train loss:", train_loss)
 
-		#   print('(iter {}) train acc: {:.4f}, val acc: {:.4f}'.format(i, train_acc, val_acc))
-
-		# # Test trained model
-		# correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-		# accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-		# print(sess.run(accuracy, feed_dict={x: mnist.test.images,
-		#                                     y_: mnist.test.labels}))
-
-	save_path = saver2.save(sess, "checkpoints_distill/distill_net.ckpt")
-	print("Model saved in file: %s" % save_path)
+    save_path = saver2.save(sess, "path_to_save_distlled_ckpt")
+    print("Model saved in file: %s" % save_path)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--data_dir', type=str, default='/tmp/tensorflow/mnist/input_data',
                       help='Directory for storing input data')
   FLAGS, unparsed = parser.parse_known_args()
-  # tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
   main()
 
 
